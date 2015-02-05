@@ -8,16 +8,30 @@ import (
 	"os/exec"
 	"os/signal"
 	"reflect"
+	"strings"
 	"syscall"
 	"time"
 )
 
+type stringsValue struct {
+	values *[]string
+}
+
+func (sv stringsValue) Set(s string) error {
+	*sv.values = append(*sv.values, s)
+	return nil
+}
+
+func (sv stringsValue) String() string {
+	return strings.Join(*sv.values, ",")
+}
+
 var (
-	listen = flag.String("listen", "", "listen address (tcp)")
+	listenAddrs []string
+	fds         []uintptr
+	fdsEnv      []string
 
-	fd  uintptr
-	cmd *exec.Cmd
-
+	cmd         *exec.Cmd
 	active      = "a"
 	inactive    = "b"
 	reloadable  = true
@@ -28,9 +42,10 @@ var (
 )
 
 func init() {
+	flag.Var(stringsValue{&listenAddrs}, "listen", "listen address (tcp)")
 	flag.Parse()
 
-	if *listen == "" {
+	if listenAddrs == nil || len(listenAddrs) == 0 {
 		die("missing listen address")
 	}
 	if flag.NArg() == 0 {
@@ -42,23 +57,28 @@ func init() {
 }
 
 func main() {
-	listener, err := net.Listen("tcp", *listen)
-	if err != nil {
-		die("cannot listen: %v", err)
-	}
+	for i, addr := range listenAddrs {
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			die("cannot listen on %s: %v", addr, err)
+		}
 
-	fdl := getfd(listener)
+		fdl := getfd(listener)
 
-	// I’m not quite sure why we need to dup the file descriptor here,
-	// but doing so fixes situations where the forked process is unable
-	// to open the inherited file descriptor.
-	dupfd, err := syscall.Dup(int(fdl))
-	if err != nil {
-		die("dup: %v", err)
-	}
-	fd = uintptr(dupfd)
-	if err := preparefd(fd); err != nil {
-		die("could not prepare fd: %v", err)
+		// I’m not quite sure why we need to dup the file descriptor here,
+		// but doing so fixes situations where the forked process is unable
+		// to open the inherited file descriptor.
+		dupfd, err := syscall.Dup(int(fdl))
+		if err != nil {
+			die("dup: %v", err)
+		}
+		fd := uintptr(dupfd)
+		if err := preparefd(fd); err != nil {
+			die("could not prepare fd: %v", err)
+		}
+
+		fds = append(fds, fd)
+		fdsEnv = append(fdsEnv, fmt.Sprintf("ZEROUPGRADE_FD%d=%d", i, fd))
 	}
 
 	sigch := make(chan os.Signal)
@@ -97,7 +117,7 @@ func main() {
 func start(ab string) {
 	args := flag.Args()
 	c := exec.Command(args[0], args[1:]...)
-	c.Env = append(os.Environ(), fmt.Sprintf("LISTENFD=%d", fd))
+	c.Env = append(os.Environ(), fdsEnv...)
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
