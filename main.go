@@ -13,16 +13,16 @@ import (
 	"time"
 )
 
-type stringsValue struct {
+type stringsVar struct {
 	values *[]string
 }
 
-func (sv stringsValue) Set(s string) error {
+func (sv stringsVar) Set(s string) error {
 	*sv.values = append(*sv.values, s)
 	return nil
 }
 
-func (sv stringsValue) String() string {
+func (sv stringsVar) String() string {
 	return strings.Join(*sv.values, ",")
 }
 
@@ -42,7 +42,7 @@ var (
 )
 
 func init() {
-	flag.Var(stringsValue{&listenAddrs}, "listen", "listen address (tcp)")
+	flag.Var(stringsVar{&listenAddrs}, "listen", "listen address (tcp)")
 	flag.Parse()
 
 	if listenAddrs == nil || len(listenAddrs) == 0 {
