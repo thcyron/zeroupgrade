@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -54,13 +55,16 @@ func init() {
 
 	exitch = make(chan string)
 	killch = make(chan struct{})
+
+	log.SetPrefix("zeroupgrade: ")
+	log.SetFlags(0)
 }
 
 func main() {
 	for i, addr := range listenAddrs {
 		listener, err := net.Listen("tcp", addr)
 		if err != nil {
-			die("cannot listen on %s: %v", addr, err)
+			log.Fatalf("cannot listen on %s: %v\n", addr, err)
 		}
 
 		fdl := getfd(listener)
@@ -70,11 +74,11 @@ func main() {
 		// to open the inherited file descriptor.
 		dupfd, err := syscall.Dup(int(fdl))
 		if err != nil {
-			die("dup: %v", err)
+			log.Fatalf("dup: %v\n", err)
 		}
 		fd := uintptr(dupfd)
 		if err := preparefd(fd); err != nil {
-			die("could not prepare fd: %v", err)
+			log.Fatalf("could not prepare fd: %v\n", err)
 		}
 
 		fds = append(fds, fd)
@@ -95,7 +99,7 @@ func main() {
 				if terminating {
 					os.Exit(0)
 				}
-				die("active process exited")
+				log.Fatalln("active process exited")
 			} else {
 				reloadable = true
 			}
@@ -123,12 +127,12 @@ func start(ab string) {
 	c.Stderr = os.Stderr
 
 	if err := c.Start(); err != nil {
-		die("starting command for process %s failed: %v", ab, err)
+		log.Fatalf("starting command for process %s failed: %v\n", ab, err)
 	}
 
 	go func() {
 		if err := c.Wait(); err != nil {
-			die("command for process %s failed: %v", ab, err)
+			log.Fatalf("command for process %s failed: %v\n", ab, err)
 		}
 		exitch <- ab
 	}()
