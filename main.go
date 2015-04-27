@@ -108,6 +108,8 @@ func main() {
 			case syscall.SIGUSR2:
 				if reloadable {
 					reload()
+				} else {
+					log.Println("another reload is already in progess")
 				}
 			case syscall.SIGTERM, syscall.SIGINT:
 				terminating = true
