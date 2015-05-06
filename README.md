@@ -9,8 +9,6 @@ upgrades.
 While zeroupgrade is written in Go, client programs may be written
 in any language.
 
-**Be careful. Zeroupgrade hasn’t been used in production yet.**
-
 ## Usage
 
     zeroupgrade -listen localhost:8080 command...
@@ -52,4 +50,3 @@ http.Serve(listener, nil)
 ## TODO
 
 - Write pidfile
-- Race tests
