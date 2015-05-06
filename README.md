@@ -9,6 +9,8 @@ upgrades.
 While zeroupgrade is written in Go, client programs may be written
 in any language.
 
+Zeroupgrade has similarities with [Stripe’s Einhorn](https://github.com/stripe/einhorn).
+
 ## Usage
 
     zeroupgrade -listen localhost:8080 command...
