@@ -10,6 +10,8 @@ While zeroupgrade is written in Go, client programs may be written
 in any language.
 
 Zeroupgrade has similarities with [Stripe’s Einhorn](https://github.com/stripe/einhorn).
+If you run systemd, you don’t need zeroupgrade, use
+[systemd’s socket activation](http://www.freedesktop.org/software/systemd/man/systemd.socket.html).
 
 ## Usage
 
